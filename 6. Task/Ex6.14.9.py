@@ -67,6 +67,18 @@ passengers = [
 async def take_the_bus(passenger):
     try:
         await asyncio.sleep(passenger['Speed'])
-        return f'{passenger["name"]} сел в автобус.'
+        return f'{passenger["Name"]} сел в автобус.'
+    except asyncio.CancelledError:
+        return f'{passenger["Name"]} {passenger["Job"]} не успел/а вовремя сесть в автобус.'
+
+
+async def main():
+    tasks = [asyncio.create_task(take_the_bus(passenger)) for passenger in passengers]
+    try:
+        await asyncio.wait_for(asyncio.gather(*tasks), timeout=5)
     except asyncio.TimeoutError:
-        return f'{passenger["name"]} {passenger["Job"]} не успел/а вовремя сесть в автобус.'
+        for task in tasks:
+            print(task.result())
+
+
+asyncio.run(main())
