@@ -52,6 +52,21 @@ async def poll_messages():
                     "Напиши что-нибудь другое"]
 
     # Допишите эту функцию
+    global number_messages
+    while number_messages < 5:
+        await asyncio.create_task(messages_input())
+        await asyncio.sleep(2)
+        if messages:
+            print("Получено сообщение:  ", messages[0])
+            if random.randint(0, 3):
+                message = f"{random.choice(messages_bot)}"
+                print(f"Собеседник 2:   {message}")
+            else:
+                print("Собеседник 2:   'Собеседник решил промолчать...'")
+        messages.clear()
+
+
+
 
 
 # Функция, которая стартует оба процесса в асинхронной среде
