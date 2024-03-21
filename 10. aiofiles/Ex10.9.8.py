@@ -1,41 +1,63 @@
 import asyncio
-import aiofiles
 import aiofiles.os as aios
-import aiocsv
 import json
+import datetime
+import csv
 
 result = []
+
 
 def sort_key(value):
     return value.split('log_')[1]
 
-async def json_handler(path, lock):
-    # res = json.loads(path)
-    # print(res)
+
+async def json_handler(path):
      with open(path, 'r', newline='') as file:
-        a = json.load(file)
-        # rows = await file.read()
-        # a = rows.split('{')
-        print(a)
+        jsons_data = json.load(file)
+        sorted_json_data = sorted(jsons_data, key=lambda x: x['Время и дата'])
+        for data in sorted_json_data:
+            if data['HTTP-статус'] == 200:
+                data_time = data['Время и дата']
+                iso_format = datetime.datetime.fromisoformat(data_time)
+                new_data = iso_format.strftime('%d.%m.%Y %H:%M:%S')
+                result.append(
+                    {
+                        **data,
+                        'Время и дата': new_data
+                    }
+                )
 
 
-
-        #print(rows)
-
-        # print('--------------------------')
-        # json_n = json.dumps(rows, indent=4, ensure_ascii=False)
-        # print(json_n)
+async def write_csv(name, data):
+    with open(
+            file=f'{name}.csv',
+            mode='w',
+            encoding='utf-8-sig',
+            newline=''
+    ) as file:
+        writer = csv.writer(
+            file,
+            lineterminator='\n',
+            quotechar='"',
+            delimiter=';',
+            quoting=csv.QUOTE_MINIMAL
+        )
+        writer.writerow(data[0])
+        for json_data in data:
+            writer.writerow(json_data.values())
 
 
 async def main(main_folder):
-    lock = asyncio.Lock()
     files = sorted(await aios.listdir(main_folder), key=sort_key)
-    # tasks = [
-    #     asyncio.create_task(json_handler(f'{main_folder}/{file}', lock))
-    #     for file in files
-    # ]
-    # await asyncio.gather(*tasks)
-    await json_handler(f'{main_folder}/{files[0]}', lock)
+    tasks = [
+        asyncio.create_task(json_handler(f'{main_folder}/{file}'))
+        for file in files
+    ]
+    await asyncio.gather(*tasks)
+    await write_csv(
+        name='results_log',
+        data=result,
+    )
 
 
 asyncio.run(main('logs'))
